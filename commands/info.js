@@ -16,7 +16,6 @@ module.exports = {
             .addField('profil', 'Cek data dirimu di server ini', true)
             .addField('clear', 'Menghapus pesan dalam jumlah tertentu', true)
             .setFooter('VigiBot | 1.1.3', client.user.displayAvatarURL());
-        
             message.channel.send(list);
             // message.reply('Naon?');
         }

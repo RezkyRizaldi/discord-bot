@@ -30,7 +30,7 @@ module.exports = {
             );
             profileEmbed.setThumbnail(message.author.displayAvatarURL());
             profileEmbed.setColor(0xffed2a);
-            profileEmbed.addField("Presence Status:", message.author.presence.status, true);
+            profileEmbed.addField("Presence Status:", message.author.presence.member, true);
             profileEmbed.setFooter('VigiBot | 1.1.3', client.user.displayAvatarURL());
 
             return message.channel.send(profileEmbed);
@@ -50,7 +50,7 @@ module.exports = {
             profileEmbed.setDescription(`Tanggal Join: ${formatDate(User.joinedAt)}\nNickname: ${client.users.cache.get(User.id).tag}\nRoles: ${roles}`);
             profileEmbed.setThumbnail(client.users.cache.get(User.id).displayAvatarURL());
             profileEmbed.setColor(0xffed2a);
-            profileEmbed.addField("Presence Status:", User.presence.status, true);
+            profileEmbed.addField("Presence Status:", User.presence.activities, true);
             profileEmbed.setFooter('VigiBot | 1.1.3', client.user.displayAvatarURL());
 
             return message.channel.send(profileEmbed);
