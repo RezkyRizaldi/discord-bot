@@ -1,6 +1,7 @@
 // Load up the discord.js library
 const Discord = require("discord.js");
 const vhtearKey = "HHadat2Kooo90hyh";
+var giphy = require('giphy-api')('TyYo01XU0bD9O6X3o8ZaYZMnWC6anDGL');
  // API Key Hadat
 // This is your client. Some people call it `bot`, some people call it `self`,
 // some might call it `cootchie`. Either way, when you see `client.something`, or `bot.something`,
@@ -57,6 +58,16 @@ client.on("message", async (message) => {
     if (message.content.startsWith(`${prefix}`)) {
         let args = message.content.substring(prefix.length).split(/ +/)
         switch (args[0]) {
+            case "kiss":
+                giphy.random({
+                    tag: 'anime kiss',
+                    fmt: 'json'
+                }, function (err, res) {
+                console.log(res['data']['url']);
+                const gifUrl = res['data']['url'];
+                message.channel.send(gifUrl);
+                });
+                break
             case "igstalk":
             if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!igstalk zx.skywalker**");
             const usernameQuery = args[1];
