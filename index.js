@@ -2,6 +2,7 @@
 const Discord = require("discord.js");
 const vhtearKey = "HHadat2Kooo90hyh";
 var giphy = require('giphy-api')('TyYo01XU0bD9O6X3o8ZaYZMnWC6anDGL');
+const cheerio = require('cheerio');
  // API Key Hadat
 // This is your client. Some people call it `bot`, some people call it `self`,
 // some might call it `cootchie`. Either way, when you see `client.something`, or `bot.something`,
@@ -58,6 +59,136 @@ client.on("message", async (message) => {
     if (message.content.startsWith(`${prefix}`)) {
         let args = message.content.substring(prefix.length).split(/ +/)
         switch (args[0]) {
+            case "brainly":
+                const brainlyQuery = body.slice(9)
+                try {
+                    const brainlyResp = await axios.get(`https://api.vhtear.com/branly?query=${brainlyQuery}&apikey=${vhtearKey}`);
+                    let {
+                        data
+                    } = brainlyResp.data.result;
+                    message.reply(data);
+                } catch (error) {
+                    console.log(error.message);
+                }
+                break
+            case "tiktokstalk":
+                const tiktokQuery = body.slice(13);
+                try {
+                    const tiktokResp = await axios.get(`https://api.vhtear.com/tiktokprofile?query=${tiktokQuery}&apikey=${vhtearKey}`);
+                    const {
+                        bio,
+                        description,
+                        follow,
+                        follower,
+                        like_count,
+                        picture,
+                        source,
+                        title,
+                        url_account,
+                        username,
+                        verified,
+                        video_post,
+                    } = tiktokResp.data.result;
+                    const tiktokEmbed = new MessageEmbed()
+                    .setTitle(title)
+                    .setDescription(bio + "\n" + description)
+                    .addField(follow,'Following',true)
+                    .addField(follower,'Followers',true)
+                    .addField(video_post,'Video Post',true)
+                    .addField(like_count,'Likes',true)
+                    .addField('Verified',(verified == false ? "Not Verified" : "Verified"),true)
+                    .addField('Account Info',url_account)
+                    .setThumbnail(picture)
+                    message.channel.send(tiktokEmbed);
+                } catch (error) {
+                    console.log(error.message);
+                }
+                break
+            case "randomnekonime":
+                try {
+                    const nekoResp = await axios.get(`https://api.vhtear.com/randomnekonime&apikey=${vhtearKey}`)
+                    const nekoData = nekoResp.data.result.result;
+                    message.channel.send(nekoData);
+                } catch (err) {
+                    console.log(err.message)
+                }
+                break
+            case "randomwaifu":
+                try {
+                    const randWaifuResp = await axios.get(`https://api.vhtear.com/randomwibu&apikey=${vhtearKey}`);
+                    const {
+                        nama,
+                        deskripsi,
+                        foto,
+                        sumber
+                     } = randWaifuResp.data.result
+                     const sendRandWaifu = new MessageEmbed()
+                     .setTitle(nama)
+                     .setDescription(deskripsi)
+                     .setThumbnail(foto)
+                     message.channel.send(sendRandWaifu);
+                } catch (error) {
+                    console.log(error.message);
+                }
+                break
+            case "tesvtube":
+                try {
+                    const dataVtube = await axios.get('https://hololive.wiki/w/api.php?action=opensearch&format=json&formatversion=2&search=watson&namespace=0%7C4&limit=10');
+                    console.log(dataVtube.data[3][0]);
+                    const responseVtube = dataVtube.data[3][0];
+                    const getHTMLVtuber = await axios.get(responseVtube);
+                    const $ = cheerio.load(getHTMLVtuber.data);
+                    const getVtuberTitle = $.html($('body').find('#content .firstHeading'));
+                    var vtuberTitle = $(getVtuberTitle).text();
+                    var getVtuberBio = $.html($('div.mw-parser-output').find('p'))
+                    var eachP = cheerio.load(getVtuberBio);
+                    var eax = eachP.html($('p')[4]);
+                    // message.channel.send()
+                    console.log(eax);
+                } catch (err) {
+                    console.error(err.message);
+                }
+                break
+            case "mal":
+                const malQuery = body.slice(5);
+                try {
+                    const malResponse = await axios.get(`https://api.jikan.moe/v3/search/anime?q=${malQuery}`);
+                    const {
+                         mal_id,
+                         url,
+                         image_url,
+                         title,
+                         airing,
+                         synopsis,
+                         type,
+                         episodes,
+                         score,
+                         start_date,
+                         end_date,
+                         members,
+                         rated
+                    } = malResponse.data.results[0];
+                    var startDateFormat = start_date.split('T')[0];
+                    var endDateFormat = end_date.split('T')[0];
+                    const malMessage = new MessageEmbed()
+                    .setTitle(title)
+                    .setDescription(synopsis)
+                    .setThumbnail(image_url)
+                    .addField('Type',type,true)
+                    .addField('Score',score,true)
+                    .addField('Episodes',episodes,true)
+                    .addField('Members',members,true)
+                    .addField('Start Date',startDateFormat,true)
+                    .addField('End Date',endDateFormat,true)
+                    .addField('Rating',rated,true)
+                    .addField('Airing',(airing == false ? 'Finished' : 'Ongoing'),true)
+                    .addField('More Detail',url,false)
+                    .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                    message.channel.send(malMessage);
+                } catch (err) {
+                    console.error(err.message);
+                }
+                break
             case "kiss":
                 giphy.random({
                     tag: 'anime kiss',
@@ -68,7 +199,7 @@ client.on("message", async (message) => {
                 message.channel.send(gifUrl);
                 });
                 break
-            case "igstalk":
+            case "igstalk": 
             if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!igstalk zx.skywalker**");
             const usernameQuery = args[1];
             try {
@@ -444,10 +575,10 @@ client.on("message", async (message) => {
             case "lupa":
                 client.commands.get("lupa").execute(message, args);
                 break;
-            case "loli":
-                client.commands.get("loli").execute(message, args);
+            // case "loli":
+            //     client.commands.get("loli").execute(message, args);
                 
-                break;
+            //     break;
                 //
                 // M
                 //
@@ -630,3 +761,35 @@ function play(guild, song) {
     }
 }
 client.login(token);
+
+// AUTO UPDATE SCRIPT ON Change
+// Cache handler and watch for file change
+
+/**
+ * Uncache if there is file change
+ * @param {string} module Module name or path
+ * @param {function} cb <optional> 
+ */
+ function nocache(module, cb = () => { }) {
+    console.log('Module', `'${module}'`, 'is now being watched for changes')
+    fs.watchFile(require.resolve(module), async () => {
+        await uncache(require.resolve(module))
+        cb(module)
+    })
+}
+
+/**
+ * Uncache a module
+ * @param {string} module Module name or path
+ */
+function uncache(module = '.') {
+    return new Promise((resolve, reject) => {
+        try {
+            delete require.cache[require.resolve(module)]
+            resolve()
+        } catch (e) {
+            reject(e)
+        }
+    })
+}
+nocache('./index.js', module => console.log(`'${module}' Updated!`));

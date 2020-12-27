@@ -19,6 +19,8 @@ module.exports = {
                     }
                 }
             });
+            var stringifiedRole = roles.toString().replace(/,/g,", ");
+            console.log(stringifiedRole);
             profileEmbed.setTitle(`‹${message.author.username}›'s profile`);
             console.log(`${message.member.joinedAt}`);
             profileEmbed.setDescription(
@@ -26,13 +28,13 @@ module.exports = {
           message.author.username
         }` +
                 "#" +
-                `${message.author.discriminator}\nRoles: ${roles}`
+                `${message.author.discriminator}\nRoles: ${stringifiedRole}`
             );
             profileEmbed.setThumbnail(message.author.displayAvatarURL());
             profileEmbed.setColor(0xffed2a);
             profileEmbed.addField("Presence Status:", message.author.presence.member, true);
             profileEmbed.setFooter('VigiBot | 1.1.3', client.user.displayAvatarURL());
-
+            console.log();
             return message.channel.send(profileEmbed);
         } else {
             let User = message.mentions.members.first();
