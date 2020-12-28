@@ -59,6 +59,28 @@ client.on("message", async (message) => {
     if (message.content.startsWith(`${prefix}`)) {
         let args = message.content.substring(prefix.length).split(/ +/)
         switch (args[0]) {
+            case "searchyt":
+                const keywordSearch = body.slice(9);
+                const logoYT = 'https://i.pinimg.com/originals/de/1c/91/de1c91788be0d791135736995109272a.png';
+                try {
+                    function getList() {
+                        return axios.get(`https://api.vhtear.com/youtube?query=${keywordSearch}&apikey=HHadat2Kooo90hyh`);
+                    }
+                    getList().then(function (resp) {
+                        var hasilCari = resp.data.result;
+                        var listYt = '' + "Untuk download Video / MP3 silahkan copy link dan paste di command #ytmp3 [link] / #ytmp4 [link]";
+                        for (searchYtIndex = 0; searchYtIndex < 5; searchYtIndex++) {
+                            var indexku = searchYtIndex + 1;
+                            listYt += "\n" + indexku + ". Judul : \n" + hasilCari[searchYtIndex].title + "\n\nDurasi : " + hasilCari[searchYtIndex].duration + "\n\nLink : \n" + hasilCari[searchYtIndex].urlyt + "\n\nID : \n" + hasilCari[searchYtIndex].id + "\n";
+                        }
+                        setTimeout(function() {
+                            message.channel.send(listYt);
+                        }, 2000);
+                    });
+                } catch (error) {
+                    
+                }
+                break
             case "brainly":
                 const brainlyQuery = body.slice(9)
                 try {
@@ -132,19 +154,64 @@ client.on("message", async (message) => {
                 }
                 break
             case "tesvtube":
+                var countArgs = args.length;
+                if (countArgs < 2) return message.reply("Argumen tidak ada! Mohon masukan argumen dengan kata kunci lebih spesifik!\nContoh : **!tesvtube sakura miko**")
+                console.log(args);
+                var upperCasedQuery = "";
+                for (vq = 1; vq < countArgs; vq++){
+                    upperCasedQuery += args[vq].charAt(0).toUpperCase() + args[vq].slice(1) + " ";
+                }
+                var replacedQuery = upperCasedQuery.replace(/ /g, "%20");
                 try {
-                    const dataVtube = await axios.get('https://hololive.wiki/w/api.php?action=opensearch&format=json&formatversion=2&search=watson&namespace=0%7C4&limit=10');
-                    console.log(dataVtube.data[3][0]);
+                    const dataVtube = await axios.get(`https://hololive.wiki/w/api.php?action=opensearch&format=json&formatversion=2&search=${replacedQuery}&namespace=0%7C4&limit=10`);
+                    const searchVtuberUrl = dataVtube.data[3][0];
+                    console.log(searchVtuberUrl);
+                    if (typeof searchVtuberUrl != 'undefined' ||searchVtuberUrl != null){
                     const responseVtube = dataVtube.data[3][0];
                     const getHTMLVtuber = await axios.get(responseVtube);
                     const $ = cheerio.load(getHTMLVtuber.data);
-                    const getVtuberTitle = $.html($('body').find('#content .firstHeading'));
-                    var vtuberTitle = $(getVtuberTitle).text();
-                    var getVtuberBio = $.html($('div.mw-parser-output').find('p'))
-                    var eachP = cheerio.load(getVtuberBio);
-                    var eax = eachP.html($('p')[4]);
-                    // message.channel.send()
-                    console.log(eax);
+                    const getVtuberTitle = $('body').find('#content .firstHeading').text();
+                    const getVtuberImage = $('body').find('.infobox > tbody > tr').eq(1).find('img').attr('src');
+                    const officialBio = $('.mw-parser-output').find('#Official_Bio').text();
+                    const getFirstParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next();
+                    const getSecondaryParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next().next();
+                    const getFirstBio = $(getFirstParentBio).text();
+                    const getSecondaryBio = $(getSecondaryParentBio).text();
+                    const bioCheck = getSecondaryParentBio[0]['name'];
+                    var vtuberTableValue = "";
+                    const vtuberAgency = $('.infobox > tbody > tr > th:contains(Member of)').next().text();
+                    const vtuberBirthday = $('.infobox > tbody > tr > th:contains(Birthday)').next().text();
+                    const vtuberFanName = $('.infobox > tbody > tr > th:contains(Fan Name)').next().text();
+                    const vtuberYoutube = $('.infobox > tbody > tr > th:contains(YouTube)').next().find('a').attr('href');
+                    const vtuberMark = $('.infobox > tbody > tr > th:contains(Oshi Mark)').next().text();
+                    const vtuberHeight = $('.infobox > tbody > tr > th:contains(Height)').next().text();
+                    const vtuberAge = $('.infobox > tbody > tr > th:contains(Age)').next().text();
+                    const vtuberCatchphrase = $('.infobox > tbody > tr').eq(1).text();
+                    console.log(vtuberCatchphrase);
+                    var mergedBio = "";
+                    if (bioCheck == "p"){
+                        mergedBio += getFirstBio + "\n" + getSecondaryBio
+                    } else {
+                        mergedBio += getFirstBio
+                    }
+                    setTimeout(function(){
+                        const embedVtuberBio = new MessageEmbed()
+                        .setTitle(getVtuberTitle)
+                        .addField("Official Bio",mergedBio)
+                        .setThumbnail(getVtuberImage)
+                        .addField('Catchphrase',vtuberCatchphrase)
+                        .addField('Agency',vtuberAgency)
+                        .addField('Birthday',vtuberBirthday)
+                        .addField('Fan Name',vtuberFanName)
+                        .addField('Youtube',vtuberYoutube)
+                        .addField('Age',(vtuberAge != "" ? vtuberAge : "Unknown"))
+                        .addField('Height',vtuberHeight)
+                        .addField('Emoji / Oshi Mark',vtuberMark)
+                        message.channel.send(embedVtuberBio);
+                    }, 2000);
+                } else {
+                    message.reply("Data tidak ditemukan! Mohon cari dengan kata kunci lebih spesifik!\nContoh : **!tesvtube sakura miko**")                    
+                }
                 } catch (err) {
                     console.error(err.message);
                 }
