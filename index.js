@@ -199,7 +199,7 @@ client.on("message", async (message) => {
                         .setTitle(getVtuberTitle)
                         .addField("Official Bio",mergedBio)
                         .setThumbnail(getVtuberImage)
-                        .addField('Catchphrase',vtuberCatchphrase)
+                        .addField('Catchphrase',(vtuberCatchphrase == "" ? 'None' : vtuberCatchphrase))
                         .addField('Agency',vtuberAgency)
                         .addField('Birthday',vtuberBirthday)
                         .addField('Fan Name',vtuberFanName)
