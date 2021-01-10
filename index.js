@@ -3,7 +3,7 @@ const Discord = require("discord.js");
 const vhtearKey = "HHadat2Kooo90hyh";
 var giphy = require('giphy-api')('TyYo01XU0bD9O6X3o8ZaYZMnWC6anDGL');
 const cheerio = require('cheerio');
- // API Key Hadat
+// API Key Hadat
 // This is your client. Some people call it `bot`, some people call it `self`,
 // some might call it `cootchie`. Either way, when you see `client.something`, or `bot.something`,
 // this is what we're refering to. Your client.
@@ -21,12 +21,20 @@ const {
 } = require("./config.json");
 const build = "1.1.3";
 const ytdl = require("ytdl-core");
-const axios = require ('axios');
+const axios = require('axios');
 const newMembers = new Discord.Collection();
 client.commands = new Discord.Collection();
 const fs = require("fs");
 const Menu = require("./menu");
 const queue = new Map();
+const {
+    Player
+} = require('discord-music-player');
+const player = new Player(client, {
+    leaveOnEmpty: false, // This options are optional.
+});
+// You can define the Player as *client.player* to easly access it.
+client.player = player;
 const commandFiles = fs
     .readdirSync("./commands")
     .filter((file) => file.endsWith(".js"));
@@ -59,6 +67,93 @@ client.on("message", async (message) => {
     if (message.content.startsWith(`${prefix}`)) {
         let args = message.content.substring(prefix.length).split(/ +/)
         switch (args[0]) {
+            case "progress":
+                let progressBar = client.player.createProgressBar(message.guild.id, 20);
+                message.channel.send(progressBar);
+                break
+            case "shuffle":
+                client.player.shuffle(message.guild.id);
+                message.channel.send('Server Queue was shuffled.');
+                break
+            case "stop":
+                client.player.stop(message.guild.id);
+                message.channel.send('Music stopped, the Queue was cleared!');
+                break
+            case "resume":
+                let songResume = await client.player.resume(message.guild.id);
+                message.channel.send(`${songResume.name} was resumed!`);
+                break
+            case "pause":
+                let songPause = await client.player.pause(message.guild.id);
+                message.channel.send(`${songPause.name} was paused!`);
+                break
+            case "delete":
+                let SongID = parseInt(args[0]) - 1; // The index is starting from 0, so we subtract 1.
+                // Removes a song from the queue
+                client.player.remove(message.guild.id, SongID).then(() => {
+                    message.channel.send(`Removed song ${args[0]} from the Queue!`)
+                });
+                break
+            case "skip":
+                let songSkip = await client.player.skip(message.guild.id);
+                message.channel.send(`${songSkip.name} was skipped!`);
+                break
+            case "q":
+                let queue = await client.player.getQueue(message.guild.id);
+                message.channel.send('Queue:\n' + (queue.songs.map((song, i) => {
+                    return `${i === 0 ? 'Now Playing' : `#${i+1}`} - ${song.name} | ${song.author}`
+                }).join('\n')));
+                break
+            case "cq":
+                client.player.clearQueue(message.guild.id);
+                message.channel.send('Queue was cleared!');
+                break
+            case "now":
+                let songPlaying = await client.player.nowPlaying(message.guild.id);
+                message.channel.send(`Current song: ${songPlaying.name}`);
+                break
+            case "playlist":
+                let isPlaying = client.player.isPlaying(message.guild.id);
+                // If MaxSongs is -1, will be infinite.
+                let playlist = await client.player.playlist(message.guild.id, args.join(' '), message.member.voice.channel, 10, message.author.tag);
+                // Determine the Song (only if the music was not playing previously)
+                let songPlaylist = playlist.song;
+                // Get the Playlist
+                playlist = playlist.playlist;
+                // Send information about adding the Playlist to the Queue
+                message.channel.send(`Added a Playlist to the queue with **${playlist.videoCount} songs**, that was **made by ${playlist.channel}**.`)
+                // If there was no songs previously playing, send a message about playing one.
+                if (!isPlaying) {
+                    message.channel.send(`Started playing ${songPlaylist.name}!`);
+                    // Send a message, when Queue would be empty.
+                    songPlaylist.queue.on('end', () => {
+                        message.channel.send('The queue is empty, please add new songs!');
+                    });
+                    // Send a message, when a Song would change.
+                    songPlaylist.queue.on('songChanged', (oldSong, newSong, skipped, repeatMode) => {
+                        if (repeatMode) {
+                            message.channel.send(`Playing ${newSong.name} again...`);
+                        } else {
+                            message.channel.send(`Now playing ${newSong.name}...`);
+                        }
+                    });
+                }
+                break
+            case "play":
+                let isPlayingNew = client.player.isPlaying(message.guild.id);
+                // If there's already a song playing
+                if (isPlayingNew) {
+                    // Add the song to the queue
+                    let song = await client.player.addToQueue(message.guild.id, args.join(' '));
+                    song = song.song;
+                    message.channel.send(`Song ${song.name} was added to the queue!`);
+                } else {
+                    // Else, play the song
+                    let song = await client.player.play(message.member.voice.channel, args.join(' '));
+                    song = song.song;
+                    message.channel.send(`Started playing ${song.name}!`);
+                }
+                break
             case "searchyt":
                 const keywordSearch = body.slice(9);
                 const logoYT = 'https://i.pinimg.com/originals/de/1c/91/de1c91788be0d791135736995109272a.png';
@@ -73,13 +168,11 @@ client.on("message", async (message) => {
                             var indexku = searchYtIndex + 1;
                             listYt += "\n" + indexku + ". Judul : \n" + hasilCari[searchYtIndex].title + "\n\nDurasi : " + hasilCari[searchYtIndex].duration + "\n\nLink : \n" + hasilCari[searchYtIndex].urlyt + "\n\nID : \n" + hasilCari[searchYtIndex].id + "\n";
                         }
-                        setTimeout(function() {
+                        setTimeout(function () {
                             message.channel.send(listYt);
                         }, 2000);
                     });
-                } catch (error) {
-                    
-                }
+                } catch (error) {}
                 break
             case "brainly":
                 const brainlyQuery = body.slice(9)
@@ -112,15 +205,15 @@ client.on("message", async (message) => {
                         video_post,
                     } = tiktokResp.data.result;
                     const tiktokEmbed = new MessageEmbed()
-                    .setTitle(title)
-                    .setDescription(bio + "\n" + description)
-                    .addField(follow,'Following',true)
-                    .addField(follower,'Followers',true)
-                    .addField(video_post,'Video Post',true)
-                    .addField(like_count,'Likes',true)
-                    .addField('Verified',(verified == false ? "Not Verified" : "Verified"),true)
-                    .addField('Account Info',url_account)
-                    .setThumbnail(picture)
+                        .setTitle(title)
+                        .setDescription(bio + "\n" + description)
+                        .addField(follow, 'Following', true)
+                        .addField(follower, 'Followers', true)
+                        .addField(video_post, 'Video Post', true)
+                        .addField(like_count, 'Likes', true)
+                        .addField('Verified', (verified == false ? "Not Verified" : "Verified"), true)
+                        .addField('Account Info', url_account)
+                        .setThumbnail(picture)
                     message.channel.send(tiktokEmbed);
                 } catch (error) {
                     console.log(error.message);
@@ -143,12 +236,12 @@ client.on("message", async (message) => {
                         deskripsi,
                         foto,
                         sumber
-                     } = randWaifuResp.data.result
-                     const sendRandWaifu = new MessageEmbed()
-                     .setTitle(nama)
-                     .setDescription(deskripsi)
-                     .setThumbnail(foto)
-                     message.channel.send(sendRandWaifu);
+                    } = randWaifuResp.data.result
+                    const sendRandWaifu = new MessageEmbed()
+                        .setTitle(nama)
+                        .setDescription(deskripsi)
+                        .setThumbnail(foto)
+                    message.channel.send(sendRandWaifu);
                 } catch (error) {
                     console.log(error.message);
                 }
@@ -158,7 +251,7 @@ client.on("message", async (message) => {
                 if (countArgs < 2) return message.reply("Argumen tidak ada! Mohon masukan argumen dengan kata kunci lebih spesifik!\nContoh : **!tesvtube sakura miko**")
                 console.log(args);
                 var upperCasedQuery = "";
-                for (vq = 1; vq < countArgs; vq++){
+                for (vq = 1; vq < countArgs; vq++) {
                     upperCasedQuery += args[vq].charAt(0).toUpperCase() + args[vq].slice(1) + " ";
                 }
                 var replacedQuery = upperCasedQuery.replace(/ /g, "%20");
@@ -166,52 +259,52 @@ client.on("message", async (message) => {
                     const dataVtube = await axios.get(`https://hololive.wiki/w/api.php?action=opensearch&format=json&formatversion=2&search=${replacedQuery}&namespace=0%7C4&limit=10`);
                     const searchVtuberUrl = dataVtube.data[3][0];
                     console.log(searchVtuberUrl);
-                    if (typeof searchVtuberUrl != 'undefined' ||searchVtuberUrl != null){
-                    const responseVtube = dataVtube.data[3][0];
-                    const getHTMLVtuber = await axios.get(responseVtube);
-                    const $ = cheerio.load(getHTMLVtuber.data);
-                    const getVtuberTitle = $('body').find('#content .firstHeading').text();
-                    const getVtuberImage = $('body').find('.infobox > tbody > tr').eq(1).find('img').attr('src');
-                    const officialBio = $('.mw-parser-output').find('#Official_Bio').text();
-                    const getFirstParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next();
-                    const getSecondaryParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next().next();
-                    const getFirstBio = $(getFirstParentBio).text();
-                    const getSecondaryBio = $(getSecondaryParentBio).text();
-                    const bioCheck = getSecondaryParentBio[0]['name'];
-                    var vtuberTableValue = "";
-                    const vtuberAgency = $('.infobox > tbody > tr > th:contains(Member of)').next().text();
-                    const vtuberBirthday = $('.infobox > tbody > tr > th:contains(Birthday)').next().text();
-                    const vtuberFanName = $('.infobox > tbody > tr > th:contains(Fan Name)').next().text();
-                    const vtuberYoutube = $('.infobox > tbody > tr > th:contains(YouTube)').next().find('a').attr('href');
-                    const vtuberMark = $('.infobox > tbody > tr > th:contains(Oshi Mark)').next().text();
-                    const vtuberHeight = $('.infobox > tbody > tr > th:contains(Height)').next().text();
-                    const vtuberAge = $('.infobox > tbody > tr > th:contains(Age)').next().text();
-                    const vtuberCatchphrase = $('.infobox > tbody > tr').eq(1).text();
-                    console.log(vtuberCatchphrase);
-                    var mergedBio = "";
-                    if (bioCheck == "p"){
-                        mergedBio += getFirstBio + "\n" + getSecondaryBio
+                    if (typeof searchVtuberUrl != 'undefined' || searchVtuberUrl != null) {
+                        const responseVtube = dataVtube.data[3][0];
+                        const getHTMLVtuber = await axios.get(responseVtube);
+                        const $ = cheerio.load(getHTMLVtuber.data);
+                        const getVtuberTitle = $('body').find('#content .firstHeading').text();
+                        const getVtuberImage = $('body').find('.infobox > tbody > tr').eq(1).find('img').attr('src');
+                        const officialBio = $('.mw-parser-output').find('#Official_Bio').text();
+                        const getFirstParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next();
+                        const getSecondaryParentBio = $('.mw-parser-output').find('#Official_Bio').closest('h2').next().next();
+                        const getFirstBio = $(getFirstParentBio).text();
+                        const getSecondaryBio = $(getSecondaryParentBio).text();
+                        const bioCheck = getSecondaryParentBio[0]['name'];
+                        var vtuberTableValue = "";
+                        const vtuberAgency = $('.infobox > tbody > tr > th:contains(Member of)').next().text();
+                        const vtuberBirthday = $('.infobox > tbody > tr > th:contains(Birthday)').next().text();
+                        const vtuberFanName = $('.infobox > tbody > tr > th:contains(Fan Name)').next().text();
+                        const vtuberYoutube = $('.infobox > tbody > tr > th:contains(YouTube)').next().find('a').attr('href');
+                        const vtuberMark = $('.infobox > tbody > tr > th:contains(Oshi Mark)').next().text();
+                        const vtuberHeight = $('.infobox > tbody > tr > th:contains(Height)').next().text();
+                        const vtuberAge = $('.infobox > tbody > tr > th:contains(Age)').next().text();
+                        const vtuberCatchphrase = $('.infobox > tbody > tr').eq(1).text();
+                        console.log(vtuberCatchphrase);
+                        var mergedBio = "";
+                        if (bioCheck == "p") {
+                            mergedBio += getFirstBio + "\n" + getSecondaryBio
+                        } else {
+                            mergedBio += getFirstBio
+                        }
+                        setTimeout(function () {
+                            const embedVtuberBio = new MessageEmbed()
+                                .setTitle(getVtuberTitle)
+                                .addField("Official Bio", mergedBio)
+                                .setThumbnail(getVtuberImage)
+                                .addField('Catchphrase', (vtuberCatchphrase == "" ? 'None' : vtuberCatchphrase))
+                                .addField('Agency', vtuberAgency)
+                                .addField('Birthday', vtuberBirthday)
+                                .addField('Fan Name', vtuberFanName)
+                                .addField('Youtube', vtuberYoutube)
+                                .addField('Age', (vtuberAge != "" ? vtuberAge : "Unknown"))
+                                .addField('Height', vtuberHeight)
+                                .addField('Emoji / Oshi Mark', vtuberMark)
+                            message.channel.send(embedVtuberBio);
+                        }, 2000);
                     } else {
-                        mergedBio += getFirstBio
+                        message.reply("Data tidak ditemukan! Mohon cari dengan kata kunci lebih spesifik!\nContoh : **!tesvtube sakura miko**")
                     }
-                    setTimeout(function(){
-                        const embedVtuberBio = new MessageEmbed()
-                        .setTitle(getVtuberTitle)
-                        .addField("Official Bio",mergedBio)
-                        .setThumbnail(getVtuberImage)
-                        .addField('Catchphrase',(vtuberCatchphrase == "" ? 'None' : vtuberCatchphrase))
-                        .addField('Agency',vtuberAgency)
-                        .addField('Birthday',vtuberBirthday)
-                        .addField('Fan Name',vtuberFanName)
-                        .addField('Youtube',vtuberYoutube)
-                        .addField('Age',(vtuberAge != "" ? vtuberAge : "Unknown"))
-                        .addField('Height',vtuberHeight)
-                        .addField('Emoji / Oshi Mark',vtuberMark)
-                        message.channel.send(embedVtuberBio);
-                    }, 2000);
-                } else {
-                    message.reply("Data tidak ditemukan! Mohon cari dengan kata kunci lebih spesifik!\nContoh : **!tesvtube sakura miko**")                    
-                }
                 } catch (err) {
                     console.error(err.message);
                 }
@@ -221,36 +314,36 @@ client.on("message", async (message) => {
                 try {
                     const malResponse = await axios.get(`https://api.jikan.moe/v3/search/anime?q=${malQuery}`);
                     const {
-                         mal_id,
-                         url,
-                         image_url,
-                         title,
-                         airing,
-                         synopsis,
-                         type,
-                         episodes,
-                         score,
-                         start_date,
-                         end_date,
-                         members,
-                         rated
+                        mal_id,
+                        url,
+                        image_url,
+                        title,
+                        airing,
+                        synopsis,
+                        type,
+                        episodes,
+                        score,
+                        start_date,
+                        end_date,
+                        members,
+                        rated
                     } = malResponse.data.results[0];
                     var startDateFormat = start_date.split('T')[0];
                     var endDateFormat = end_date.split('T')[0];
                     const malMessage = new MessageEmbed()
-                    .setTitle(title)
-                    .setDescription(synopsis)
-                    .setThumbnail(image_url)
-                    .addField('Type',type,true)
-                    .addField('Score',score,true)
-                    .addField('Episodes',episodes,true)
-                    .addField('Members',members,true)
-                    .addField('Start Date',startDateFormat,true)
-                    .addField('End Date',endDateFormat,true)
-                    .addField('Rating',rated,true)
-                    .addField('Airing',(airing == false ? 'Finished' : 'Ongoing'),true)
-                    .addField('More Detail',url,false)
-                    .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                        .setTitle(title)
+                        .setDescription(synopsis)
+                        .setThumbnail(image_url)
+                        .addField('Type', type, true)
+                        .addField('Score', score, true)
+                        .addField('Episodes', episodes, true)
+                        .addField('Members', members, true)
+                        .addField('Start Date', startDateFormat, true)
+                        .addField('End Date', endDateFormat, true)
+                        .addField('Rating', rated, true)
+                        .addField('Airing', (airing == false ? 'Finished' : 'Ongoing'), true)
+                        .addField('More Detail', url, false)
+                        .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
                     message.channel.send(malMessage);
                 } catch (err) {
                     console.error(err.message);
@@ -261,43 +354,43 @@ client.on("message", async (message) => {
                     tag: 'anime kiss',
                     fmt: 'json'
                 }, function (err, res) {
-                console.log(res['data']['url']);
-                const gifUrl = res['data']['url'];
-                message.channel.send(gifUrl);
+                    console.log(res['data']['url']);
+                    const gifUrl = res['data']['url'];
+                    message.channel.send(gifUrl);
                 });
                 break
-            case "igstalk": 
-            if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!igstalk zx.skywalker**");
-            const usernameQuery = args[1];
-            try {
-                const igStalk = await axios.get(`https://api.vhtear.com/igprofile?query=${usernameQuery}&apikey=${vhtearKey}`);
-                const {
-                    biography,
-                    follow,
-                    follower,
-                    full_name,
-                    is_private,
-                    picture,
-                    post_count,
-                    username
-                } = igStalk.data.result;
-                const dataIgStalk = new MessageEmbed()
-                .setTitle(`${username}`)
-                .addField(`**${post_count}**`,`posts`, true)
-                .addField(`**${follower}**`,`follower`, true)
-                .addField(`**${follow}**`,` following`, true)
-                .setThumbnail(picture)
-                .setTitle(`${full_name}`)
-                .setDescription(`${biography}`)
-                .addField(`Link Profile`,`https://www.instagram.com/${username}`)
-                .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
-                message.channel.send(dataIgStalk);
-            } catch (err) {
-                console.error(err.message);
-            }
-            break
+            case "igstalk":
+                if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!igstalk zx.skywalker**");
+                const usernameQuery = args[1];
+                try {
+                    const igStalk = await axios.get(`https://api.vhtear.com/igprofile?query=${usernameQuery}&apikey=${vhtearKey}`);
+                    const {
+                        biography,
+                        follow,
+                        follower,
+                        full_name,
+                        is_private,
+                        picture,
+                        post_count,
+                        username
+                    } = igStalk.data.result;
+                    const dataIgStalk = new MessageEmbed()
+                        .setTitle(`${username}`)
+                        .addField(`**${post_count}**`, `posts`, true)
+                        .addField(`**${follower}**`, `follower`, true)
+                        .addField(`**${follow}**`, ` following`, true)
+                        .setThumbnail(picture)
+                        .setTitle(`${full_name}`)
+                        .setDescription(`${biography}`)
+                        .addField(`Link Profile`, `https://www.instagram.com/${username}`)
+                        .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                    message.channel.send(dataIgStalk);
+                } catch (err) {
+                    console.error(err.message);
+                }
+                break
             case "resepmasakan":
-            if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!wiki Covid 19**");
+                if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!wiki Covid 19**");
                 const queryMasakan = body.slice(14);
                 try {
                     const responseMasakan = await axios.get(`https://api.vhtear.com/resepmasakan?query=${queryMasakan}&apikey=${vhtearKey}`);
@@ -311,11 +404,11 @@ client.on("message", async (message) => {
                     } = responseMasakan.data.result;
                     const deskripsiMasakan = `\n\n**Bahan** : \n${bahan}\n\n**Cara** : \n${cara}`
                     const dataMasakan = new MessageEmbed()
-                    .setTitle(`${title}`)
-                    .setDescription(`${desc}` + `${deskripsiMasakan}`)
-                    .setImage(`${image}`)
-                    .addField('Sumber :',`${source}`,true)
-                    .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                        .setTitle(`${title}`)
+                        .setDescription(`${desc}` + `${deskripsiMasakan}`)
+                        .setImage(`${image}`)
+                        .addField('Sumber :', `${source}`, true)
+                        .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
                     message.channel.send(dataMasakan);
                 } catch (err) {
                     console.error(err.message);
@@ -339,33 +432,33 @@ client.on("message", async (message) => {
                     const countcategories = categories.length;
                     const countpages = pages.length;
                     var tagsData = ""
-                    for (ind = 0; ind < countTags; ind++){
+                    for (ind = 0; ind < countTags; ind++) {
                         tagsData += `\n- ` + tags[ind];
                     }
                     var artistsData = ""
-                    for (a = 0; a < countartists; a++){
+                    for (a = 0; a < countartists; a++) {
                         artistsData += `\n- ${artists[a]}`;
                     }
                     var categoriesData = ""
-                    for (u = 0; u < countcategories; u++){
+                    for (u = 0; u < countcategories; u++) {
                         categoriesData += `\n- ${categories[u]}`;
                     }
                     var pagesData = ""
-                    for (o = 0; o < countpages; o++){
+                    for (o = 0; o < countpages; o++) {
                         pagesData += `\n${pages[o]}`;
                     }
                     console.log(categoriesData)
-                    setTimeout(function(){
-                    const nhentaiEmbed = new MessageEmbed()
-                    .setTitle(`${title}\n${secondary_title}`)
-                    .addField(`Code`,`${id}`)
-                    .addField(`Tags`,`${tagsData}`)
-                    .addField(`Artists`,`${artistsData}`)
-                    .addField(`Categories`,`${categoriesData}`)
-                    .addField(`Pages`,`${pagesData}`)
-                    .setImage(images[0])
-                    .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
-                    message.channel.send(nhentaiEmbed);
+                    setTimeout(function () {
+                        const nhentaiEmbed = new MessageEmbed()
+                            .setTitle(`${title}\n${secondary_title}`)
+                            .addField(`Code`, `${id}`)
+                            .addField(`Tags`, `${tagsData}`)
+                            .addField(`Artists`, `${artistsData}`)
+                            .addField(`Categories`, `${categoriesData}`)
+                            .addField(`Pages`, `${pagesData}`)
+                            .setImage(images[0])
+                            .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                        message.channel.send(nhentaiEmbed);
                     }, 3000);
                 } catch (err) {
                     console.error(err.message);
@@ -384,61 +477,6 @@ client.on("message", async (message) => {
                 client.commands.get('clear').execute(client, message, args);
                 break;
                 // This is for music functions and such
-            case "play":
-                const voiceChannel = message.member.voice.channel;
-                if (!voiceChannel)
-                    return message.channel.send(
-                        "Masuk voice dulu dong, masa gw nyanyi sendiri"
-                    );
-                const perms = voiceChannel.permissionsFor(message.client.user);
-                if (!args[1]) return message.channel.send("Please provide a link!");
-                if (!args[1].match(/(youtube.com|youtu.be)\/(watch)?(\?v=)?(\S+)?/))
-                    return message.channel.send("Link yutub dong :3");
-                if (!perms.has("CONNECT"))
-                    return message.channel.send(
-                        "Gabisa join channel gw bro"
-                    );
-                if (!perms.has("SPEAK"))
-                    return message.channel.send(
-                        "Gabisa nyanyi bro... dimute gw"
-                    );
-                message.member.voice.channel.join();
-                const songInfo = await ytdl.getInfo(args[1]);
-                const song = {
-                    title: songInfo.videoDetails.title,
-                    url: songInfo.videoDetails.video_url,
-                }
-                if (!serverQueue) {
-                    const queueConstruct = {
-                        textChannel: message.channel,
-                        voiceChannel: voiceChannel,
-                        connection: null,
-                        songs: [],
-                        volume: 5,
-                        playing: true
-                    }
-                    queue.set(message.guild.id, queueConstruct);
-                    queueConstruct.songs.push(song);
-                    message.channel.send(`${song.title} dah masuk ke list karaoke gw :josgandos:`);
-                    try {
-                        var connection = await voiceChannel.join();
-                        queueConstruct.connection = connection;
-                        message.channel.send('Lagi nyanyi ' + song.title);
-                        play(message.guild, queueConstruct.songs[0])
-                    } catch (error) {
-                        console.log(
-                            `Duh lagi konslet : ${error}`
-                        );
-                        return message.channel.send(
-                            `Gabisa joing voice euy : ${error}`
-                        );
-                    }
-                } else {
-                    message.channel.send(`${song.title} dah masuk ke list karaoke gw :josgandos:`);
-                    serverQueue.songs.push(song);
-                    return;
-                }
-                break;
             case "q":
                 // queueList = serverQueue;
                 if (serverQueue == undefined) {
@@ -642,10 +680,9 @@ client.on("message", async (message) => {
             case "lupa":
                 client.commands.get("lupa").execute(message, args);
                 break;
-            // case "loli":
-            //     client.commands.get("loli").execute(message, args);
-                
-            //     break;
+                // case "loli":
+                //     client.commands.get("loli").execute(message, args);
+                //     break;
                 //
                 // M
                 //
@@ -796,55 +833,21 @@ client.on("message", async (message) => {
         return;
     }
 });
-
-function play(guild, song) {
-    const serverQueue = queue.get(guild.id);
-    if (!song) {
-        serverQueue.voiceChannel.leave();
-        queue.delete(guild.id);
-        return
-    }
-    const dispatcher = serverQueue.connection
-        .play(
-            ytdl(song.url, {
-                filter: "audioonly",
-                highWaterMark: 1 << 25
-            }), {
-                bitrate: 64000
-            }
-        )
-        .on("finish", () => {
-            serverQueue.songs.shift();
-            play(guild, serverQueue.songs[0]);
-            // voiceChannel.leave();
-        })
-        .on("error", (error) => {
-            console.log(error);
-        });
-    if (!serverQueue) {
-        dispatcher.setVolumeLogarithmic(queueConstruct.volume / 5);
-    } else {
-        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-    }
-}
 client.login(token);
-
 // AUTO UPDATE SCRIPT ON Change
 // Cache handler and watch for file change
-
 /**
  * Uncache if there is file change
  * @param {string} module Module name or path
  * @param {function} cb <optional> 
  */
- function nocache(module, cb = () => { }) {
+function nocache(module, cb = () => {}) {
     console.log('Module', `'${module}'`, 'is now being watched for changes')
     fs.watchFile(require.resolve(module), async () => {
         await uncache(require.resolve(module))
         cb(module)
     })
 }
-
 /**
  * Uncache a module
  * @param {string} module Module name or path
