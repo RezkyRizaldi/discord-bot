@@ -3,6 +3,8 @@ const Discord = require("discord.js");
 const vhtearKey = "HHadat2Kooo90hyh";
 var giphy = require('giphy-api')('TyYo01XU0bD9O6X3o8ZaYZMnWC6anDGL');
 const cheerio = require('cheerio');
+const baseUrl = "https://api.vhtear.com/";
+const apiKey = "K2021HHadat2Kooo90hyh";
 // API Key Hadat
 // This is your client. Some people call it `bot`, some people call it `self`,
 // some might call it `cootchie`. Either way, when you see `client.something`, or `bot.something`,
@@ -221,7 +223,7 @@ client.on("message", async (message) => {
                 break
             case "randomnekonime":
                 try {
-                    const nekoResp = await axios.get(`https://api.vhtear.com/randomnekonime&apikey=${vhtearKey}`)
+                    const nekoResp = await axios.get(`https://api.vhtear.com/randomnekonime&apikey=${apiKey}`)
                     const nekoData = nekoResp.data.result.result;
                     message.channel.send(nekoData);
                 } catch (err) {
@@ -230,7 +232,7 @@ client.on("message", async (message) => {
                 break
             case "randomwaifu":
                 try {
-                    const randWaifuResp = await axios.get(`https://api.vhtear.com/randomwibu&apikey=${vhtearKey}`);
+                    const randWaifuResp = await axios.get(`https://api.vhtear.com/randomwibu&apikey=${apiKey}`);
                     const {
                         nama,
                         deskripsi,
@@ -363,7 +365,7 @@ client.on("message", async (message) => {
                 if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!igstalk zx.skywalker**");
                 const usernameQuery = args[1];
                 try {
-                    const igStalk = await axios.get(`https://api.vhtear.com/igprofile?query=${usernameQuery}&apikey=${vhtearKey}`);
+                    const igStalk = await axios.get(`https://api.vhtear.com/igprofile?query=${usernameQuery}&apikey=${apiKey}`);
                     const {
                         biography,
                         follow,
@@ -390,7 +392,7 @@ client.on("message", async (message) => {
                 }
                 break
             case "resepmasakan":
-                if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!wiki Covid 19**");
+                if (!args[1]) return message.reply("Command tidak benar!\nGunakan seperti contoh\n**!resepmasakan jengkol**");
                 const queryMasakan = body.slice(14);
                 try {
                     const responseMasakan = await axios.get(`https://api.vhtear.com/resepmasakan?query=${queryMasakan}&apikey=${vhtearKey}`);
@@ -500,6 +502,31 @@ client.on("message", async (message) => {
                     .setDescription(queueString);
                 message.channel.send(listQueue);
                 break;
+            case "twitterinfo":
+                const queryTwitter = body.slice(13);
+                const twitterInfoData = await axios.get(`https://api.vhtear.com/twittprofile?username=${queryTwitter}&apikey=K2021HHadat2Kooo90hyh`);
+                const twitterInfoName = twitterInfoData.data.result.name;
+                const twitterInfoStatusCount = twitterInfoData.data.result.status_count;
+                const twitterInfoFollowersCount = twitterInfoData.data.result.followers_count;
+                const twitterInfoFollowedCount = twitterInfoData.data.result.folowed_count;
+                const twitterInfoMediaCount = twitterInfoData.data.result.media_count;
+                const twitterInfoFavouritesCount = twitterInfoData.data.result.favourites_count;
+                const twitterInfoProfileImage = twitterInfoData.data.result.profile_image;
+                const twitterInfoDescription = twitterInfoData.data.result.description;
+                const twitterInfoBanner = twitterInfoData.data.result.profile_banner;
+                const dataTwitter = new MessageEmbed()
+                        .setTitle(`${twitterInfoName}`)
+                        .setImage(twitterInfoBanner)
+                        .addField(`**${twitterInfoStatusCount}**`, `status`, true)
+                        .addField(`**${twitterInfoFollowersCount}**`, `follower`, true)
+                        .addField(`**${twitterInfoFollowedCount}**`, ` following`, true)
+                        .addField(`**${twitterInfoMediaCount}**`, `uploads`,true)
+                        .addField(`**${twitterInfoFavouritesCount}**`, `favourites`,true)
+                        .setThumbnail(twitterInfoProfileImage)
+                        .setDescription(`${twitterInfoDescription}`)
+                        .setFooter('Lorem Ipsum | 0.0.1', client.user.displayAvatarURL());
+                    message.channel.send(dataTwitter);
+                break
             case "dc":
                 if (!message.member.voice.channel)
                     return message.channel.send(
