@@ -135,6 +135,12 @@ client.on("message", async (message) => {
                         setTimeout(() => {
                             message.channel.send({
                                 files: ["./list-timezone.txt"],
+                            }).then(() => {
+                                fs.unlink('list-timezone.txt', function (err) {
+                                    if (err) throw err;
+                                    // if no error, file has been deleted successfully
+                                    console.log('File deleted!');
+                                });                                 
                             });
                         }, 1000);
                     }, 500);
