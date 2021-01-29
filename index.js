@@ -27,6 +27,12 @@ const { Player } = require("discord-music-player");
 const player = new Player(client, {
     leaveOnEmpty: false, // This options are optional.
 });
+let guest = JSON.parse(fs.readFileSync('./database/guest.json'))
+// Tes Bug Report
+let bugReport = JSON.parse(fs.readFileSync('./database/report.json'))
+// End Tes Bug Report
+// Get File
+const https = require('https');
 // You can define the Player as *client.player* to easly access it.
 client.player = player;
 const commandFiles = fs
@@ -46,27 +52,80 @@ client.on("ready", () => {
         .catch(console.error);
 });
 client.on("guildMemberAdd", (member) => {
-    console.log("ada Orang masuk");
-    const channel = member.guild.channels.cache.find(
-        (ch) => ch.name === "ngobrol"
-    );
-    if (!channel) return;
-    const redirch = member.guild.channels.cache.find((ch) => ch.name === "rules");
-    var setRole = member.guild.roles.cache.find((role) => role.name === "Member");
-    member.roles.add(setRole);
-    if (member.guild.name === "R3N OFFICIAL") {
-        channel.send(
-            `Lorem ipsum dolor sit amet, ${member}! consectetur adipiscing elit. ${redirch} Ut pulvinar, nibh sed imperdiet eleifend, nunc nibh vehicula mi, id consequat tellus enim et leo. Cras egestas convallis metus, a tempor justo iaculis non.`
-        );
+    console.log(member.guild.members)
+    const memberId = member.user.id;
+    var guestData = {
+        id: memberId
     }
+    guest.push(guestData)
+    fs.writeFileSync('./database/guest.json', JSON.stringify(guest))
+    console.log("ada Orang masuk");
+    var data = guest
+    var index = -1;
+    var val = memberId
+    var filteredObj = data.find(function(item, i){
+      if(item.id === val){
+        index = i;
+        return i;
+      }
+    });
+    
+    console.log(index, filteredObj);
+    
+    // const redirch = member.guild.channels.cache.find((ch) => ch.name === "rules");
+    // var setRole = member.guild.roles.cache.find((role) => role.name === "Member");
+    // member.roles.add(setRole);
+    // if (member.guild.name === "R3N OFFICIAL") {
+    //     channel.send(
+    //         `Lorem ipsum dolor sit amet, ${member}! consectetur adipiscing elit. ${redirch} Ut pulvinar, nibh sed imperdiet eleifend, nunc nibh vehicula mi, id consequat tellus enim et leo. Cras egestas convallis metus, a tempor justo iaculis non.`
+    //     );
+    // }
 });
 client.on("message", async (message) => {
     var body = message.content;
+    if (message.channel.id == "804410196549959731") {
+        var attachmentMessage = message.attachments.toJSON()
+        const tesBotGetFile = fs.createWriteStream(`./database/${attachmentMessage[0].name}`)
+        const getBotFile = https.get(attachmentMessage[0].url, function(response){
+            response.pipe(tesBotGetFile);
+        });
+        console.log(getBotFile)
+    }
     const serverQueue = queue.get(message.guild.id);
     var queueList = [];
     if (message.content.startsWith(`${prefix}`)) {
         let args = message.content.substring(prefix.length).split(/ +/);
         switch (args[0]) {
+            // case "cekgambar":
+            //     console.log(message)
+            //     break
+            case "reportbug":
+                const messageReport = body.slice(11)
+                function makeid(length) {
+                    var result           = '';
+                    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                    var charactersLength = characters.length;
+                    for ( var i = 0; i < length; i++ ) {
+                       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                    }
+                    return result;
+                }
+                var dataReport = {
+                    id: message.author.id,
+                    message: messageReport
+                }
+                bugReport.push(dataReport)
+                fs.writeFileSync('./database/report.json', JSON.stringify(bugReport))
+                message.channel.send("Bug telah dilaporkan!")
+                break
+            case "newrol":
+                let role = message.guild.roles.cache.find(r => r.name === "new rol");
+                let authorMessage = message.author.username;
+                let user = client.guilds.cache.find(guildName => guildName.name == "CROT").members.cache.find(memberName => memberName.user.username == authorMessage);
+                user.roles.add(role).catch(console.error);
+                // console.log(authorMessage)
+                // console.log(user)
+                break
             case "timezone":
                 const timezoneQuery = body.slice(10);
                 const checkSlash = timezoneQuery.indexOf('/');
